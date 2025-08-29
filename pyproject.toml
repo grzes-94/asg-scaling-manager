@@ -21,6 +21,6 @@ dependencies = [
 asg-sm = "asg_scaling_manager.cli:app"
 
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-vv -ra"
 
 
