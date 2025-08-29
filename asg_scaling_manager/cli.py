@@ -10,7 +10,7 @@ app = typer.Typer(help="Manage ASG capacities by tag filters")
 
 @app.command()
 def set_capacity(
-    tag_key: str = typer.Option(..., help="Tag key to filter ASGs"),
+    tag_key: str = typer.Option("eks:cluster-name", help="Tag key to filter ASGs"),
     tag_value: str = typer.Option(..., help="Tag value to filter ASGs"),
     desired: int = typer.Option(..., help="Desired instances total across matched ASGs (0 allowed)"),
     max_size: Optional[int] = typer.Option(None, help="Optional max size cap to apply to each ASG"),

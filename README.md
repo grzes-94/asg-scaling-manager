@@ -5,6 +5,13 @@ Manage AWS Auto Scaling Group capacities by tag filters with a simple, reliable 
 ## Install
 
 ```bash
+# Option A: no venv (system-wide or user install)
+pip install -r requirements.txt
+
+# Option B: isolated via pipx (recommended for CLIs)
+pipx runpip asg-scaling-manager install -r requirements.txt
+
+# Option C: editable dev install with venv
 py -3.12 -m venv .venv
 .\.venv\Scripts\activate
 pip install -e .
