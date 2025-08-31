@@ -1,54 +1,65 @@
 # ASG Scaling Manager
 
-Manage AWS Auto Scaling Group capacities by tag filters with a simple, reliable CLI/library.
+Manage AWS Auto Scaling Group capacities by tag filters with a simple, reliable CLI.
 
-## Install
-
-```bash
-# Option A: no venv (system-wide or user install)
-pip install -r requirements.txt
-
-# Option B: isolated via pipx (recommended for CLIs)
-pipx runpip asg-scaling-manager install -r requirements.txt
-
-# Option C: editable dev install with venv
-py -3.12 -m venv .venv
-.\.venv\Scripts\activate
-pip install -e .
-```
-
-## CLI
+## Quick Install
 
 ```bash
-python -m asg_scaling_manager.cli --help
+pip install asg-scaling-manager
 ```
 
-- set desired capacity across ASGs that match a tag (optional name filter)
-- supports dry-run and optional per-ASG max cap
+## Usage
+
+```bash
+# Get help
+asg-sm --help
+
+# Scale ASGs tagged with eks:cluster-name=my-cluster to 6 instances total
+asg-sm --tag-value my-cluster --desired 6 --dry-run
+
+# Apply changes with optional per-ASG max cap
+asg-sm --tag-value my-cluster --desired 8 --max-size 5 --region eu-west-1
+
+# Scale down to zero (sets min/max/desired to 0)
+asg-sm --tag-value my-cluster --desired 0
+```
+
+## Features
+
+- **Tag-based filtering**: Target ASGs by `eks:cluster-name` (default) or custom tags
+- **Smart distribution**: Evenly distributes desired capacity across matched ASGs
+- **Safety first**: Dry-run mode to preview changes
+- **EKS optimized**: Defaults to `eks:cluster-name` tag for easy EKS cluster management
+- **Flexible caps**: Optional per-ASG max size limits
 
 ## Examples
 
 ```bash
-# Distribute desired=12 equally across ASGs tagged env=prod (dry-run)
-python -m asg_scaling_manager.cli \
-  --tag-key env --tag-value prod --desired 12 --dry-run
+# Preview scaling for production cluster
+asg-sm --tag-value prod-cluster --desired 12 --dry-run
 
-# Apply in eu-west-1 with an optional per-ASG cap
-python -m asg_scaling_manager.cli \
-  --tag-key team --tag-value payments \
-  --desired 8 --max-size 5 --region eu-west-1
+# Scale with name filter and custom tag
+asg-sm --tag-key team --tag-value payments --name-contains web --desired 4
 
-# Zero all matching ASGs (min/max/desired -> 0)
-python -m asg_scaling_manager.cli --tag-key env --tag-value test --desired 0
+# Emergency scale down
+asg-sm --tag-value staging --desired 0
 ```
 
 ## Notes
-- **Filters**: required `--tag-key`, `--tag-value`; optional `--name-contains`.
-- **Auth/Region**: `--profile` and/or `--region`.
-- **Dry-run**: logs the plan; no changes applied.
- - **Desired vs. max-size**: `--desired` is the total across all matched ASGs.
-   `--max-size` is a per-ASG cap. If total desired exceeds the sum of caps, the
-   plan will be limited by the combined capacity and cannot reach the target.
 
-## Library
-Use `asg_scaling_manager` programmatically to build plans or apply updates.
+- **Default tag**: Uses `eks:cluster-name` by default (perfect for EKS clusters)
+- **Desired vs max-size**: `--desired` is total across all ASGs, `--max-size` is per-ASG cap
+- **AWS auth**: Uses `--profile` and/or `--region` for AWS credentials
+- **Dry-run**: Always test with `--dry-run` first
+
+## Alternative Installation
+
+```bash
+# Isolated install (recommended for CLIs)
+pipx install asg-scaling-manager
+
+# Development install
+git clone https://github.com/grzes-94/asg-scaling-manage
+cd asg-scaling-manage
+pip install -e .
+```
