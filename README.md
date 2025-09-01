@@ -31,6 +31,7 @@ asg-sm --tag-value my-cluster --desired 0
 - **Safety first**: Dry-run mode to preview changes
 - **EKS optimized**: Defaults to `eks:cluster-name` tag for easy EKS cluster management
 - **Flexible caps**: Optional per-ASG max size limits
+- **Human-readable logging**: Color-coded logs with detailed execution flow
 
 ## Examples
 
@@ -45,12 +46,32 @@ asg-sm --tag-key team --tag-value payments --name-contains web --desired 4
 asg-sm --tag-value staging --desired 0
 ```
 
+## Logging
+
+The tool provides detailed human-readable logging with color support:
+
+```bash
+# Default INFO level logging
+asg-sm --tag-value my-cluster --desired 6 --dry-run
+
+# Enable DEBUG level for detailed execution flow
+ASG_SCALING_MANAGER_LOG_LEVEL=DEBUG asg-sm --tag-value my-cluster --desired 6 --dry-run
+```
+
+Log events include:
+- **cli.start**: Command arguments and configuration
+- **asg.discovery**: ASG discovery and filtering process
+- **planning**: Capacity distribution planning details
+- **aws.asg.update**: Individual ASG update operations
+- **execution**: Overall execution status
+
 ## Notes
 
 - **Default tag**: Uses `eks:cluster-name` by default (perfect for EKS clusters)
 - **Desired vs max-size**: `--desired` is total across all ASGs, `--max-size` is per-ASG cap
 - **AWS auth**: Uses `--profile` and/or `--region` for AWS credentials
 - **Dry-run**: Always test with `--dry-run` first
+- **Logging**: Set `ASG_SCALING_MANAGER_LOG_LEVEL=DEBUG` for detailed execution flow
 
 ## Alternative Installation
 

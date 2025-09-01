@@ -9,6 +9,13 @@ def make_asgs(n: int, max_size: int = 10):
     ]
 
 
+def make_zero_asgs(n: int):
+    return [
+        AsgInfo(name=f"asg-{i}", min_size=0, max_size=0, desired_capacity=0)
+        for i in range(n)
+    ]
+
+
 def test_plan_zero_sets_all_to_zero():
     asgs = make_asgs(3, max_size=5)
     plan = plan_zero(asgs)
@@ -45,5 +52,27 @@ def test_equal_split_respects_current_asg_max():
     # base=2, remainder=1; a limited to 2, b gets 3
     mapping = {u.name: u.desired for u in plan.updates}
     assert mapping == {"a": 2, "b": 3}
+
+
+def test_equal_split_from_zero_capacity():
+    asgs = make_zero_asgs(3)
+    plan = plan_equal_split(asgs, total_desired=6, per_asg_max_cap=None)
+    # All ASGs start with max_size=0, so they can't accept any capacity
+    # The plan should be limited by the combined capacity (0)
+    assert len(plan.updates) == 3
+    for u in plan.updates:
+        assert u.desired == 0
+    assert plan.total_desired == 0
+
+
+def test_equal_split_from_zero_with_cap():
+    asgs = make_zero_asgs(2)
+    plan = plan_equal_split(asgs, total_desired=4, per_asg_max_cap=3)
+    # Even though ASGs start with max_size=0, the per_asg_max_cap=3 allows them to scale up
+    assert len(plan.updates) == 2
+    for u in plan.updates:
+        assert u.desired == 2
+        assert u.max_size == 3
+    assert plan.total_desired == 4
 
 

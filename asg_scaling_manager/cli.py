@@ -22,7 +22,7 @@ def set_capacity(
     """Distribute desired capacity across ASGs with the given tag."""
     log = get_logger()
     log.info(
-        "cli.args",
+        "cli.start",
         tag_key=tag_key,
         tag_value=tag_value,
         desired=desired,
@@ -37,17 +37,25 @@ def set_capacity(
         raise typer.Exit(code=2)
 
     # Build AWS session and pre-filter ASGs by tag at source
+    log.info("aws.session.create", profile=profile, region=region)
     sess = create_session(profile)
     asg_client = get_asg_client(sess, region)
+    
+    # Discover ASGs
+    log.info("asg.discovery.start", tag_key=tag_key, tag_value=tag_value)
     paginator = asg_client.get_paginator("describe_auto_scaling_groups")
     matched = []
+    total_asgs = 0
+    
     for page in paginator.paginate():
         for g in page.get("AutoScalingGroups", []):
+            total_asgs += 1
             tags = {t.get("Key"): t.get("Value") for t in g.get("Tags", [])}
             if tags.get(tag_key) != tag_value:
                 continue
             name = g["AutoScalingGroupName"]
             if name_contains and name_contains not in name:
+                log.debug("asg.filtered.name", name=name, name_contains=name_contains)
                 continue
             matched.append(
                 AsgInfo(
@@ -57,18 +65,26 @@ def set_capacity(
                     desired_capacity=g.get("DesiredCapacity", 0),
                 )
             )
+            log.debug("asg.matched", name=name, min_size=g.get("MinSize", 0), max_size=g.get("MaxSize", 0), desired_capacity=g.get("DesiredCapacity", 0))
 
+    log.info("asg.discovery.complete", total_asgs=total_asgs, matched_count=len(matched))
+    
     if not matched:
+        log.warning("asg.no_matches", tag_key=tag_key, tag_value=tag_value, name_contains=name_contains)
         typer.echo("No ASGs matched the provided filters.")
         raise typer.Exit(code=1)
 
-    # Plan
+    # Plan capacity distribution
+    log.info("planning.start", desired=desired, max_size=max_size, asg_count=len(matched))
     if desired == 0:
         plan: Plan = plan_zero(matched)
+        log.info("planning.zero_mode", asg_count=len(matched))
     else:
         plan = plan_equal_split(matched, desired, max_size)
+        log.info("planning.equal_split", total_desired=plan.total_desired, requested=desired)
 
-    # Report
+    # Report plan details
+    log.info("planning.complete", update_count=len(plan.updates))
     for u in plan.updates:
         log.info(
             "plan.update",
@@ -89,11 +105,14 @@ def set_capacity(
         typer.echo(msg)
 
     if dry_run:
+        log.info("execution.skipped.dry_run")
         typer.echo("[DRY-RUN] No changes applied.")
         return
 
-    # Apply
+    # Apply plan
+    log.info("execution.start", update_count=len(plan.updates))
     apply_plan(sess, region, plan.updates)
+    log.info("execution.complete")
     typer.echo("Updates submitted.")
 
 
